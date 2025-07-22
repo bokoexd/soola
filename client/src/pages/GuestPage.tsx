@@ -4,7 +4,13 @@ import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api'; // Import the centralized API instance
 
-const socket = io('https://server-production-22f7.up.railway.app');
+const socket = io('https://server-production-22f7.up.railway.app', {
+  withCredentials: true,
+  transports: ['websocket', 'polling'],
+  extraHeaders: {
+    "Access-Control-Allow-Origin": "*"
+  }
+});
 
 interface EventDetails {
   _id: string;

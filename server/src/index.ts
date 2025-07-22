@@ -12,23 +12,45 @@ import cors from 'cors'; // Add CORS middleware
 
 const app = express();
 const server = http.createServer(app);
+
+// Define allowed origins for CORS
+const allowedOrigins = [
+  'https://soola-production.up.railway.app',
+  'http://localhost:3000'
+];
+
+// Configure Socket.IO with appropriate CORS settings
 const io = new Server(server, {
   cors: {
-    origin: "*", // Still allow all origins for flexibility during testing
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+    allowedHeaders: ["Authorization", "Content-Type"]
+  },
+  transports: ['websocket', 'polling'] // Explicitly define transports
 });
 
-// Add CORS middleware with specific origins if needed in production
+// Add CORS middleware with specific origins for Express
 app.use(cors({
-  origin: ["https://server-production-22f7.up.railway.app", "http://localhost:3000"],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
 
+// Use MongoDB connection string from environment variable in production
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/soola-sessions';
 const PORT = process.env.PORT || 3001;
 
-mongoose.connect('mongodb://localhost:27017/soola-sessions')
+mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
