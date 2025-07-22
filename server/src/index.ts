@@ -14,13 +14,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for now, refine later
+    origin: "*", // Still allow all origins for flexibility during testing
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
-// Add CORS middleware to allow requests from the client
-app.use(cors());
+// Add CORS middleware with specific origins if needed in production
+app.use(cors({
+  origin: ["https://server-production-22f7.up.railway.app", "http://localhost:3000"],
+  credentials: true
+}));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;

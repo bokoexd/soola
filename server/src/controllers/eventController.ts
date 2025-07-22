@@ -8,7 +8,7 @@ export const createEvent = async (req: Request, res: Response) => {
     const { name, date, description, guests, cocktails } = req.body;
     const newEvent: IEvent = new Event({ name, date, description, guests, cocktails });
 
-    const qrCodeData = `http://localhost:3000/claim/${newEvent._id}`;
+    const qrCodeData = `https://server-production-22f7.up.railway.app/claim/${newEvent._id}`;
     newEvent.qrCode = await qrcode.toDataURL(qrCodeData);
 
     await newEvent.save();

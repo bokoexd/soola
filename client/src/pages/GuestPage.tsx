@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api'; // Import the centralized API instance
 
-const socket = io('http://localhost:3001');
+const socket = io('https://server-production-22f7.up.railway.app');
 
 interface EventDetails {
   _id: string;
