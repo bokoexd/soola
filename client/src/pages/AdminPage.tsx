@@ -3,16 +3,45 @@ import { Container, Typography, Box, TextField, Button, List, ListItem, ListItem
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import api from '../api'; // Import the centralized API instance
+import api from '../api';
 import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 
-const socket = io('https://server-production-22f7.up.railway.app', {
+// Create a socket.io client with robust error handling and reconnection logic
+const socket = io(process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:3001', {
   withCredentials: true,
   transports: ['websocket', 'polling'],
-  extraHeaders: {
-    "Access-Control-Allow-Origin": "*"
-  }
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
+  autoConnect: true,
+  forceNew: true
+});
+
+// Add error handlers for socket connection
+socket.on('connect_error', (err) => {
+  // console.error('Socket connection error:', err.message);
+});
+
+socket.on('connect_timeout', () => {
+  // console.error('Socket connection timeout');
+});
+
+socket.on('reconnect_attempt', (attempt) => {
+  // console.log(`Socket reconnection attempt: ${attempt}`);
+});
+
+socket.on('reconnect_error', (err) => {
+  // console.error('Socket reconnection error:', err);
+});
+
+socket.on('reconnect_failed', () => {
+  // console.error('Socket reconnection failed');
+});
+
+socket.on('connect', () => {
+  // console.log('Socket connected:', socket.id);
 });
 
 interface Event {

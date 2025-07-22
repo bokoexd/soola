@@ -4,7 +4,7 @@ import User, { IUser } from '../models/User';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Use environment variable in production
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 declare global {
   namespace Express {

@@ -7,17 +7,29 @@ import guestRoutes from './routes/guestRoutes';
 import orderRoutes, { setIoInstanceForOrders } from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
-import { protect } from './controllers/userController'; // Import protect middleware
-import cors from 'cors'; // Add CORS middleware
+import seedAdmin from './seedAdmin';
+import { protect } from './controllers/userController';
+import cors from 'cors';
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// Define allowed origins for CORS
-const allowedOrigins = [
-  'https://soola-production.up.railway.app',
-  'http://localhost:3000'
-];
+// Define allowed origins dynamically
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://soola-production.up.railway.app', 'https://server-production-22f7.up.railway.app']
+  : ['http://localhost:3000', 'http://localhost:3001'];
+
+// Apply CORS middleware with proper configuration
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  optionsSuccessStatus: 200
+}));
 
 // Configure Socket.IO with appropriate CORS settings
 const io = new Server(server, {
@@ -27,47 +39,52 @@ const io = new Server(server, {
     credentials: true,
     allowedHeaders: ["Authorization", "Content-Type"]
   },
-  transports: ['websocket', 'polling'] // Explicitly define transports
+  // Prefer WebSocket but fall back to polling if needed
+  transports: ['websocket', 'polling']
 });
 
-// Add CORS middleware with specific origins for Express
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
+
 app.use(express.json());
 
-// Use MongoDB connection string from environment variable in production
-const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/soola-sessions';
+// Use MongoDB connection string from environment variable
+const mongoURI = process.env.MONGO_URL || 'mongodb://localhost:27017/soola-sessions';
 const PORT = process.env.PORT || 3001;
 
 mongoose.connect(mongoURI)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    if (process.env.SEED_ADMIN === 'true') {
+      seedAdmin();
+    }
+  })
   .catch(err => console.log(err));
 
 // Pass the io instance to the order controller
 setIoInstanceForOrders(io);
 
 // Routes
-app.use('/api/users', userRoutes); // User routes (login/register) don't need protection
-app.use('/api/events', eventRoutes); // Remove protect middleware here, we'll apply it in the route file
+app.use('/api/users', userRoutes);
+app.use('/api/events', eventRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', protect, adminRoutes);
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  // console.log('a user connected', socket.id);
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    // console.log('user disconnected', socket.id);
+  });
+  
+  // Handle any errors on the socket
+  socket.on('error', (err) => {
+    console.error('Socket error:', err);
   });
 });
 

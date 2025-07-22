@@ -35,7 +35,6 @@ const ClaimPage: React.FC = () => {
       }
     };
         if (eventId) {
-      console.log('eventId:', eventId);
       fetchEventName();
     }
   }, [eventId]);

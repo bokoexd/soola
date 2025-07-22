@@ -1,13 +1,14 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://server-production-22f7.up.railway.app/api',
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
+// Add request interceptor to handle CORS credentials and headers
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -15,6 +16,7 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -30,7 +32,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // If we get a 401, it might be because the token is expired
-      console.log("Authentication error, redirecting to login");
+      // console.log("Authentication error, redirecting to login"); // Keep for debugging if needed
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       
@@ -39,6 +41,7 @@ api.interceptors.response.use(
         window.location.href = '/';
       }
     }
+    
     return Promise.reject(error);
   }
 );
