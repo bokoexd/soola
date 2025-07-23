@@ -11,8 +11,12 @@ import seedAdmin from './seedAdmin';
 import { protect } from './controllers/userController';
 import cors from 'cors';
 
-import dotenv from 'dotenv';
-dotenv.config();
+// Import dotenv at the top to ensure it's loaded before any environment variables are accessed
+import * as dotenv from 'dotenv';
+// Log the current working directory to help with debugging
+console.log('Current working directory:', process.cwd());
+// Configure dotenv with path option to ensure it finds the file
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '.env' : '.env.local' });
 
 const app = express();
 const server = http.createServer(app);
