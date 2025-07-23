@@ -18,11 +18,30 @@ console.log('Current working directory:', process.cwd());
 // Configure dotenv with path option to ensure it finds the file
 dotenv.config();
 
-// Clean environment variables to prevent trailing semicolons or other issues
+// Enhanced environment variable cleaning function
 const cleanEnvVar = (value: string | undefined): string => {
   if (!value) return '';
-  // Remove semicolons, quotes, and trim whitespace
-  return value.replace(/[;'"]/g, '').trim();
+  
+  // Remove semicolons, quotes, and trim whitespace more aggressively
+  const cleaned = value.replace(/[;'"]/g, '').trim();
+  
+  // Log the before and after values to help with debugging
+  if (value !== cleaned) {
+    console.log(`Cleaned environment variable from "${value}" to "${cleaned}"`);
+  }
+  
+  return cleaned;
+};
+
+// Validate a URL string is properly formatted
+const validateUrl = (url: string): boolean => {
+  try {
+    // This will throw if the URL is invalid
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
 };
 
 // Set cleaned environment variables
@@ -31,6 +50,12 @@ const PORT = cleanEnvVar(process.env.PORT) || '3001';
 const CLIENT_URL = cleanEnvVar(process.env.CLIENT_URL);
 const MONGO_URL = cleanEnvVar(process.env.MONGO_URL);
 const JWT_SECRET = cleanEnvVar(process.env.JWT_SECRET);
+
+// Validate critical URLs
+if (CLIENT_URL && !validateUrl(CLIENT_URL)) {
+  console.error(`Invalid CLIENT_URL: "${CLIENT_URL}"`);
+  process.exit(1);
+}
 
 // Log environment variables for debugging (avoid logging sensitive info)
 console.log('Environment variables loaded:', {

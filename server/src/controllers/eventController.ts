@@ -7,11 +7,19 @@ export const createEvent = async (req: Request, res: Response) => {
   try {
     const { name, date, description, guests, cocktails } = req.body;
     const newEvent: IEvent = new Event({ name, date, description, guests, cocktails });
-
-    // Clean the client URL to ensure it doesn't have any trailing semicolons or other issues
-    const clientUrl = process.env.CLIENT_URL 
-      ? process.env.CLIENT_URL.replace(/[;'"]/g, '').trim() 
-      : 'http://localhost:3000';
+    
+    // Clean the client URL with extra safety measures
+    let clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    // Remove any potential problematic characters
+    clientUrl = clientUrl.replace(/[;'"]/g, '').trim();
+    
+    try {
+      // Validate the URL before using it
+      new URL(clientUrl);
+    } catch (e) {
+      console.error(`Invalid CLIENT_URL: ${clientUrl}, falling back to default`);
+      clientUrl = 'http://localhost:3000';
+    }
     
     // Create the QR code URL
     const qrCodeData = `${clientUrl}/claim/${newEvent._id}`;
@@ -22,9 +30,9 @@ export const createEvent = async (req: Request, res: Response) => {
     } catch (qrError) {
       console.error('Error generating QR code:', qrError);
       // Use a fallback if QR code generation fails
-      newEvent.qrCode = `${clientUrl}/claim/${newEvent._id}`;
+      newEvent.qrCode = qrCodeData;
     }
-
+    
     await newEvent.save();
 
     if (guests && guests.length > 0) {
