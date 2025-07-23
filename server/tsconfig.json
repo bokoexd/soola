@@ -1,4 +1,3 @@
-
 {
   "compilerOptions": {
     "target": "es6",
@@ -6,6 +5,16 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
-    "strict": true
-  }
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "removeComments": false,
+    "typeRoots": ["./node_modules/@types"],
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -16,7 +16,16 @@ import * as dotenv from 'dotenv';
 // Log the current working directory to help with debugging
 console.log('Current working directory:', process.cwd());
 // Configure dotenv with path option to ensure it finds the file
-dotenv.config({ path: process.env.NODE_ENV === 'production' ? '.env' : '.env.local' });
+dotenv.config();
+
+// Log environment variables for debugging (avoid logging sensitive info)
+console.log('Environment variables loaded:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  CLIENT_URL: process.env.CLIENT_URL,
+  MONGO_URL: process.env.MONGO_URL ? 'Set (value hidden)' : 'Not set',
+  JWT_SECRET: process.env.JWT_SECRET ? 'Set (value hidden)' : 'Not set'
+});
 
 const app = express();
 const server = http.createServer(app);
