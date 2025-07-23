@@ -2,22 +2,20 @@ FROM node:16-alpine
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files first
 COPY package*.json ./
 
-# Install dependencies with production flag to avoid dev dependencies
-RUN npm ci --only=production
+# Install dependencies (using npm install instead of npm ci)
+RUN npm install
 
-# Copy TypeScript config
+# Copy TypeScript config and source code
 COPY tsconfig.json ./
-
-# Copy source code
 COPY src/ ./src/
 
-# Move typescript from devDependencies to dependencies
+# Install TypeScript explicitly if needed
 RUN npm install typescript
 
-# Build the project
+# Build the application
 RUN npm run build
 
 # Set environment variables
@@ -27,5 +25,7 @@ ENV PORT=3001
 # Expose the port
 EXPOSE 3001
 
+# Command to run the application
+CMD ["node", "dist/index.js"]
 # Command to run the application
 CMD ["node", "dist/index.js"]
