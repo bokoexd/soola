@@ -1,10 +1,22 @@
-
 import { Request, Response, NextFunction } from 'express';
 import User, { IUser } from '../models/User';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+// Get JWT secret with better error handling
+const getJwtSecret = (): string => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('JWT_SECRET is not defined in environment variables!');
+    return 'fallback_jwt_secret_for_development_only';
+  }
+  return jwtSecret.replace(/[;'"]/g, '').trim();
+};
+
+const JWT_SECRET = getJwtSecret();
+
+// Log JWT secret availability (not the actual value)
+console.log('JWT_SECRET availability check:', JWT_SECRET ? 'Available' : 'Missing');
 
 declare global {
   namespace Express {
@@ -52,43 +64,79 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
   try {
+    console.log('Login attempt for:', req.body.email);
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      console.log('Login rejected: Missing email or password');
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('Login rejected: User not found -', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('Login rejected: Invalid password for', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+    // Check if JWT_SECRET is available
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET is not available. Cannot generate token.');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
 
-    res.status(200).json({ message: 'Login successful', token, user: { email: user.email, role: user.role } });
+    try {
+      const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      console.log('Login successful for:', email, 'with role:', user.role);
+      
+      // Return user info without password and with token
+      return res.status(200).json({
+        message: 'Login successful',
+        token,
+        user: {
+          email: user.email,
+          role: user.role
+        }
+      });
+    } catch (jwtError) {
+      console.error('JWT Sign error:', jwtError);
+      return res.status(500).json({ message: 'Error generating authentication token' });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in', error });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Error logging in', error: error instanceof Error ? error.message : String(error) });
   }
 };
 
 export const protect = (req: Request, res: Response, next: NextFunction) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
-  }
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: 'admin' | 'user' };
-    req.user = { _id: decoded.id, email: '', password: '', role: decoded.role } as IUser;
-    next();
+    let token;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      console.log('Access denied: No token provided');
+      return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: 'admin' | 'user' };
+      req.user = { _id: decoded.id, email: '', password: '', role: decoded.role } as IUser;
+      next();
+    } catch (jwtError) {
+      console.error('JWT Verify error:', jwtError);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
   } catch (error) {
-    res.status(401).json({ message: 'Not authorized, token failed' });
+    console.error('Authorization middleware error:', error);
+    res.status(500).json({ message: 'Authorization process failed', error: error instanceof Error ? error.message : String(error) });
   }
 };
 

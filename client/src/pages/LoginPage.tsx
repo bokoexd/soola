@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, Container, Typography, Box } from '@mui/material';
+import { TextField, Button, Container, Typography, Box, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../api'; // Import the centralized API instance
 
@@ -16,12 +16,19 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setLoading(true);
+    setError('');
+    
     try {
+      console.log('Attempting login for:', email);
       const response = await api.post<LoginResponse>('/users/login', { email, password });
+      console.log('Login response received:', response.status);
+      
       const { token, user } = response.data;
 
       localStorage.setItem('token', token); // Store the token
@@ -33,7 +40,22 @@ const LoginPage: React.FC = () => {
         setError('Unauthorized role.');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password.');
+      console.error('Login error details:', err);
+      
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', err.response.data);
+        setError(err.response.data.message || `Server error: ${err.response.status}`);
+      } else if (err.request) {
+        // The request was made but no response was received
+        setError('No response from server. Please check your connection.');
+      } else {
+        // Something happened in setting up the request
+        setError(`Error: ${err.message || 'Unknown error'}`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,7 +65,7 @@ const LoginPage: React.FC = () => {
         <Typography component="h1" variant="h5">
           Login
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1, width: '100%' }}>
           <TextField
             margin="normal"
             required
@@ -55,6 +77,7 @@ const LoginPage: React.FC = () => {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
           />
           <TextField
             margin="normal"
@@ -67,9 +90,10 @@ const LoginPage: React.FC = () => {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
           {error && (
-            <Typography color="error" variant="body2">
+            <Typography color="error" variant="body2" sx={{ mt: 2 }}>
               {error}
             </Typography>
           )}
@@ -78,8 +102,9 @@ const LoginPage: React.FC = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
           >
-            Sign In
+            {loading ? <CircularProgress size={24} /> : 'Sign In'}
           </Button>
         </Box>
       </Box>

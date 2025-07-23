@@ -23,6 +23,10 @@ if [ -n "$CLIENT_URL" ] && echo "$CLIENT_URL" | grep -q ";"; then\n\
   echo "Error: CLIENT_URL contains semicolons, which will cause path-to-regexp errors"\n\
   exit 1\n\
 fi\n\
+# Check if JWT_SECRET is set\n\
+if [ -z "$JWT_SECRET" ]; then\n\
+  echo "Warning: JWT_SECRET is not set. Using fallback secret (not secure)."\n\
+fi\n\
 echo "Environment validation passed, starting application"\n\
 node dist/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
@@ -30,6 +34,7 @@ node dist/index.js\n\
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV SEED_ADMIN=true
 
 # Expose the port
 EXPOSE 3001

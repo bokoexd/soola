@@ -30,11 +30,15 @@ api.interceptors.request.use(
     // Log requests in development for debugging
     if (process.env.NODE_ENV !== 'production') {
       console.log(`Request: ${config.method?.toUpperCase()} ${config.url}`);
+    } else {
+      // For production, log requests to help with debugging
+      console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
     }
     
     return config;
   },
   (error) => {
+    console.error('Request error:', error.message);
     return Promise.reject(error);
   }
 );
@@ -46,7 +50,20 @@ api.interceptors.response.use(
   },
   (error) => {
     // Log errors for debugging
-    console.error('API Error:', error.message, error.config?.url);
+    if (error.response) {
+      console.error('API Response Error:', {
+        status: error.response.status,
+        url: error.config?.url,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('API Request Error (No Response):', {
+        url: error.config?.url,
+        message: error.message
+      });
+    } else {
+      console.error('API Error:', error.message);
+    }
     
     if (error.response && error.response.status === 401) {
       // If we get a 401, it might be because the token is expired

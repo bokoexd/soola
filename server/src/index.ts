@@ -71,7 +71,7 @@ const server = http.createServer(app);
 
 // Define allowed origins with explicit values
 const allowedOrigins = NODE_ENV === 'production'
-  ? [CLIENT_URL]
+  ? [CLIENT_URL, 'https://soola-production.up.railway.app']
   : ['http://localhost:3000'];
 
 // Log the current environment and allowed origins for debugging
@@ -84,9 +84,12 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl requests)
     if (!origin) return callback(null, true);
     
+    console.log(`Request from origin: ${origin}`);
+    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
-      return callback(new Error(msg), false);
+      console.log(msg);
+      return callback(null, false);  // Changed to allow the request but send a 200
     }
     return callback(null, true);
   },
@@ -96,6 +99,9 @@ app.use(cors({
   exposedHeaders: ['Access-Control-Allow-Origin'],
   optionsSuccessStatus: 200
 }));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors());
 
 // Configure Socket.IO with appropriate CORS settings
 const io = new Server(server, {
