@@ -48,12 +48,26 @@ app.use(cors({
 // Configure Socket.IO with appropriate CORS settings
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl requests, WebSockets)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
     allowedHeaders: ["Authorization", "Content-Type"]
   },
-  transports: ['websocket', 'polling']
+  path: '/socket.io/',
+  transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
+  allowUpgrades: true,
+  upgradeTimeout: 10000, // Give more time for upgrades
+  pingTimeout: 60000, // Increase ping timeout
+  pingInterval: 25000  // More frequent pings to maintain connection
 });
 
 // Ensure OPTIONS requests are properly handled
@@ -106,13 +120,23 @@ app.use('/api/admin', protect, adminRoutes);
 
 io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
-  socket.on('disconnect', () => {
-    console.log('user disconnected', socket.id);
+  
+  // Log connection details for debugging
+  console.log(`Socket transport: ${socket.conn.transport.name}`);
+  console.log(`Socket URL: ${socket.conn.transport.opts.hostname}`);
+  
+  socket.on('disconnect', (reason) => {
+    console.log(`user disconnected: ${socket.id}, reason: ${reason}`);
   });
   
   // Handle any errors on the socket
   socket.on('error', (err) => {
     console.error('Socket error:', err);
+  });
+
+  // Add a simple ping-pong to keep connections alive
+  socket.on('ping', () => {
+    socket.emit('pong');
   });
 });
 

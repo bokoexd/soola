@@ -4,19 +4,28 @@ import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api';
 
+// Get the WebSocket URL from environment variables with a fallback
+const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://server-production-22f7.up.railway.app' 
+    : 'http://localhost:3001');
+
+console.log(`WebSocket URL: ${websocketUrl}`);
+
 // Create a socket.io client with robust error handling and reconnection logic
-const socket = io(process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:3001', {
+const socket = io(websocketUrl, {
   withCredentials: true,
-  transports: ['websocket', 'polling'],
-  reconnectionAttempts: 5,
+  path: '/socket.io/',
+  transports: ['polling', 'websocket'], // Start with polling, upgrade to websocket
+  reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
+  reconnectionDelayMax: 10000,
   timeout: 20000,
   autoConnect: true,
-  forceNew: true
+  forceNew: false
 });
 
-// Add error handlers for socket connection
+// Add comprehensive error handlers for socket connection
 socket.on('connect_error', (err) => {
   console.error('Socket connection error:', err.message);
 });
@@ -24,6 +33,13 @@ socket.on('connect_error', (err) => {
 socket.on('connect_timeout', () => {
   console.error('Socket connection timeout');
 });
+
+// Add ping to keep connection alive
+setInterval(() => {
+  if (socket.connected) {
+    socket.emit('ping');
+  }
+}, 30000);
 
 socket.on('reconnect_attempt', (attempt) => {
   console.log(`Socket reconnection attempt: ${attempt}`);

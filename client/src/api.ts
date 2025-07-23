@@ -1,11 +1,21 @@
 import axios from 'axios';
 
+// Get the API base URL from environment variables with a fallback
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://server-production-22f7.up.railway.app/api' 
+    : 'http://localhost:3001/api');
+
+console.log(`API base URL: ${apiBaseUrl}`);
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: apiBaseUrl,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  // Add longer timeout for production environment
+  timeout: process.env.NODE_ENV === 'production' ? 30000 : 10000
 });
 
 // Add request interceptor to handle CORS credentials and headers
@@ -15,6 +25,11 @@ api.interceptors.request.use(
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Log requests in development for debugging
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Request: ${config.method?.toUpperCase()} ${config.url}`);
     }
     
     return config;
@@ -30,9 +45,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Log errors for debugging
+    console.error('API Error:', error.message, error.config?.url);
+    
     if (error.response && error.response.status === 401) {
       // If we get a 401, it might be because the token is expired
-      // console.log("Authentication error, redirecting to login"); // Keep for debugging if needed
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       
