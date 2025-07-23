@@ -1,21 +1,18 @@
 FROM node:16-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files first
+# First, copy only package.json files to leverage Docker cache
 COPY package*.json ./
 
-# Install dependencies (using npm install instead of npm ci)
-RUN npm install
+# Install production dependencies only
+RUN npm install --production=false --no-optional
 
-# Copy TypeScript config and source code
-COPY tsconfig.json ./
-COPY src/ ./src/
+# Copy the rest of the application code
+COPY . .
 
-# Install TypeScript explicitly if needed
-RUN npm install typescript
-
-# Build the application
+# Build the TypeScript code
 RUN npm run build
 
 # Set environment variables
@@ -25,7 +22,5 @@ ENV PORT=3001
 # Expose the port
 EXPOSE 3001
 
-# Command to run the application
-CMD ["node", "dist/index.js"]
-# Command to run the application
+# Start the server using the compiled JavaScript
 CMD ["node", "dist/index.js"]
