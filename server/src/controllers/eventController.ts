@@ -8,8 +8,22 @@ export const createEvent = async (req: Request, res: Response) => {
     const { name, date, description, guests, cocktails } = req.body;
     const newEvent: IEvent = new Event({ name, date, description, guests, cocktails });
 
-    const qrCodeData = `${process.env.CLIENT_URL}/claim/${newEvent._id}`;
-    newEvent.qrCode = await qrcode.toDataURL(qrCodeData);
+    // Clean the client URL to ensure it doesn't have any trailing semicolons or other issues
+    const clientUrl = process.env.CLIENT_URL 
+      ? process.env.CLIENT_URL.replace(/[;'"]/g, '').trim() 
+      : 'http://localhost:3000';
+    
+    // Create the QR code URL
+    const qrCodeData = `${clientUrl}/claim/${newEvent._id}`;
+    console.log(`Creating QR code with URL: ${qrCodeData}`);
+    
+    try {
+      newEvent.qrCode = await qrcode.toDataURL(qrCodeData);
+    } catch (qrError) {
+      console.error('Error generating QR code:', qrError);
+      // Use a fallback if QR code generation fails
+      newEvent.qrCode = `${clientUrl}/claim/${newEvent._id}`;
+    }
 
     await newEvent.save();
 
@@ -24,6 +38,7 @@ export const createEvent = async (req: Request, res: Response) => {
 
     res.status(201).json(newEvent);
   } catch (error) {
+    console.error('Error in createEvent:', error);
     res.status(500).json({ message: 'Error creating event', error });
   }
 };

@@ -18,25 +18,39 @@ console.log('Current working directory:', process.cwd());
 // Configure dotenv with path option to ensure it finds the file
 dotenv.config();
 
+// Clean environment variables to prevent trailing semicolons or other issues
+const cleanEnvVar = (value: string | undefined): string => {
+  if (!value) return '';
+  // Remove semicolons, quotes, and trim whitespace
+  return value.replace(/[;'"]/g, '').trim();
+};
+
+// Set cleaned environment variables
+const NODE_ENV = cleanEnvVar(process.env.NODE_ENV);
+const PORT = cleanEnvVar(process.env.PORT) || '3001';
+const CLIENT_URL = cleanEnvVar(process.env.CLIENT_URL);
+const MONGO_URL = cleanEnvVar(process.env.MONGO_URL);
+const JWT_SECRET = cleanEnvVar(process.env.JWT_SECRET);
+
 // Log environment variables for debugging (avoid logging sensitive info)
 console.log('Environment variables loaded:', {
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  CLIENT_URL: process.env.CLIENT_URL,
-  MONGO_URL: process.env.MONGO_URL ? 'Set (value hidden)' : 'Not set',
-  JWT_SECRET: process.env.JWT_SECRET ? 'Set (value hidden)' : 'Not set'
+  NODE_ENV,
+  PORT,
+  CLIENT_URL,
+  MONGO_URL: MONGO_URL ? 'Set (value hidden)' : 'Not set',
+  JWT_SECRET: JWT_SECRET ? 'Set (value hidden)' : 'Not set'
 });
 
 const app = express();
 const server = http.createServer(app);
 
 // Define allowed origins with explicit values
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://soola-production.up.railway.app']
+const allowedOrigins = NODE_ENV === 'production'
+  ? [CLIENT_URL]
   : ['http://localhost:3000'];
 
 // Log the current environment and allowed origins for debugging
-console.log(`Current environment: ${process.env.NODE_ENV}`);
+console.log(`Current environment: ${NODE_ENV}`);
 console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
 
 // Apply CORS middleware with proper configuration
@@ -93,8 +107,8 @@ app.options('*', cors({
 
 // Add manual CORS headers for all responses as fallback
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
-    ? 'https://soola-production.up.railway.app' 
+  res.header('Access-Control-Allow-Origin', NODE_ENV === 'production' 
+    ? CLIENT_URL
     : 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -109,8 +123,8 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Use MongoDB connection string from environment variable
-const mongoURI = process.env.MONGO_URL || 'mongodb://localhost:27017/soola-sessions';
-const PORT = process.env.PORT || 3001;
+const mongoURI = MONGO_URL || 'mongodb://localhost:27017/soola-sessions';
+const port = parseInt(PORT, 10);
 
 mongoose.connect(mongoURI)
   .then(() => {
@@ -119,7 +133,7 @@ mongoose.connect(mongoURI)
       seedAdmin();
     }
   })
-  .catch(err => console.log(err));
+  .catch(err => console.log('MongoDB connection error:', err));
 
 // Pass the io instance to the order controller
 setIoInstanceForOrders(io);
@@ -136,7 +150,7 @@ io.on('connection', (socket) => {
   
   // Log connection details for debugging - fix the type error
   console.log(`Socket transport: ${socket.conn.transport.name}`);
-  // Remove the line causing the error or modify it to use a property that exists
+  // Use a safe way to log socket connection info
   console.log(`Socket connection established`);
   
   socket.on('disconnect', (reason) => {
@@ -154,6 +168,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+server.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
