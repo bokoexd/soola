@@ -134,9 +134,10 @@ app.use('/api/admin', protect, adminRoutes);
 io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
   
-  // Log connection details for debugging
+  // Log connection details for debugging - fix the type error
   console.log(`Socket transport: ${socket.conn.transport.name}`);
-  console.log(`Socket URL: ${socket.conn.transport.opts.hostname}`);
+  // Remove the line causing the error or modify it to use a property that exists
+  console.log(`Socket connection established`);
   
   socket.on('disconnect', (reason) => {
     console.log(`user disconnected: ${socket.id}, reason: ${reason}`);

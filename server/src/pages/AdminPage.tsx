@@ -46,3 +46,6 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// This file should not be here - it's a React component but it's in the server's source directory.
+// Remove this file or move it to the client project.
