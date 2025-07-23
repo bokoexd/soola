@@ -3,9 +3,6 @@ FROM node:16-alpine
 # Set working directory
 WORKDIR /app
 
-# Update npm to the latest version
-RUN npm install -g npm@11.4.2
-
 # Copy everything except node_modules
 COPY . .
 
