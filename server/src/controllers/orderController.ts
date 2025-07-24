@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import Order from '../models/Order';
 import Guest from '../models/Guest';
@@ -28,7 +27,8 @@ export const createOrder = async (req: Request, res: Response) => {
 
     io.to(guest._id.toString()).emit('couponUpdate', { guestId: guest._id, coupons: guest.coupons }); // Notify guest
 
-    const order = new Order({ guest: guestId, cocktail, status: 'received' });
+    // Fix: Change 'received' to 'pending' to match the Order model's enum
+    const order = new Order({ guest: guestId, cocktail, status: 'pending' });
     await order.save();
 
     // Populate the guest field before emitting
@@ -44,7 +44,8 @@ export const createOrder = async (req: Request, res: Response) => {
 
 export const getReceivedOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find({ status: 'received' }).populate('guest').sort({ createdAt: 1 });
+    // Fix: Change 'received' to 'pending' to match the Order model's enum
+    const orders = await Order.find({ status: 'pending' }).populate('guest').sort({ createdAt: 1 });
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching received orders', error });

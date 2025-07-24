@@ -10,6 +10,7 @@ export interface IGuest extends Document {
   coupons: number;
   couponHistory: { cocktail: string; timestamp: Date; }[];
   claimedCocktails: string[]; // New field to store claimed cocktails
+  matchPassword(enteredPassword: string): Promise<boolean>; // Add this method to the interface
 }
 
 const GuestSchema: Schema = new Schema({

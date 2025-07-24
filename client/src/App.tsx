@@ -1,11 +1,22 @@
-
 import React, { useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import GuestPage from './pages/GuestPage';
 import ClaimPage from './pages/ClaimPage';
 import GuestLoginPage from './pages/GuestLoginPage';
+
+// Create the missing ProtectedRoute component
+const ProtectedRoute = ({ allowedRoles = [] }) => {
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
+  
+  if (!token || !allowedRoles.includes(userRole)) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <Outlet />;
+};
 
 function App() {
   const navigate = useNavigate();

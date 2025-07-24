@@ -1,3 +1,5 @@
+/* Comment out the problematic font imports that are causing build issues */
+/*
 @font-face {
   font-family: 'More Sugar';
   src: url('./fonts/more-sugar.regular.otf') format('opentype'),
@@ -19,10 +21,13 @@
   font-weight: normal;
   font-style: normal;
 }
+*/
 
+/* Use system fonts as fallback */
 body {
   margin: 0;
-  font-family: 'Montserrat', 'Aileron', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #F7E5C3; /* Apply background color globally */
