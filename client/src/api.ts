@@ -24,7 +24,7 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       // Standard way to set headers in Axios
-      config.headers = config.headers || {};
+      config.headers = config.headers || new axios.AxiosHeaders();
       config.headers.Authorization = `Bearer ${token}`;
     }
     
