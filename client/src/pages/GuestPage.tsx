@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, List, ListItem, ListItemText, Button, Paper } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
@@ -85,7 +85,7 @@ const GuestPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGuestData = async () => {
+  const fetchGuestData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get<GuestData>(`/guests/${guestId}/dashboard`);
@@ -95,7 +95,7 @@ const GuestPage: React.FC = () => {
       setError('Failed to fetch guest data.');
       setLoading(false);
     }
-  };
+  }, [guestId]); // Add guestId as a dependency
 
   useEffect(() => {
     fetchGuestData();
@@ -132,7 +132,7 @@ const GuestPage: React.FC = () => {
       socket.off('couponUpdate');
       socket.off('orderCompleted');
     };
-  }, [guestId]);
+  }, [guestId, fetchGuestData]);
 
   const handleRedeemCocktail = async (cocktailName: string) => {
     if (!guestId) return;

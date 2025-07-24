@@ -24,12 +24,16 @@ const GuestLoginPage: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (eventId) {
+      console.log(`Login page for event: ${eventId}`);
+    }
+
     const queryParams = new URLSearchParams(location.search);
     const emailFromQuery = queryParams.get('email');
     if (emailFromQuery) {
       setEmail(emailFromQuery);
     }
-  }, [location.search]);
+  }, [location.search, eventId]);
 
   const handleLogin = async () => {
     setError('');

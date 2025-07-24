@@ -94,7 +94,7 @@ const AdminPage: React.FC = () => {
 
   const [openGuestDialog, setOpenGuestDialog] = useState(false);
   const [guestEmailToAddRemove, setGuestEmailToAddRemove] = useState('');
-  const [isLoading, setLoading] = useState(true); // Renamed to avoid unused variable
+  const [loading, setLoading] = useState(true); // Renamed from isLoading to loading since it's already used
   const [selectedEventForGuestManagement, setSelectedEventForGuestManagement] = useState<string | ''>('');
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState(0); // 0: Events, 1: Guests, 2: Orders
