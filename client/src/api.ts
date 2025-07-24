@@ -22,12 +22,9 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      // Set Authorization header with token
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`
-      };
+    if (token && config.headers) {
+      // Set Authorization header safely using config.headers.set()
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
     
     // Simple logging
