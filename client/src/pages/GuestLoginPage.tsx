@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, TextField, Button, Paper } from '@mui/material';
 import api from '../api';
+import axios from 'axios';
 
 // Define the response interface to properly type the API response
 interface GuestLoginResponse {
@@ -42,11 +43,12 @@ const GuestLoginPage: React.FC = () => {
         email,
         password,
       });
-      // Now TypeScript knows response.data.guest exists and has an _id property
       navigate(`/guest/${response.data.guest._id}`);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setError((err as any).response?.data?.message || 'Login failed. Please check your credentials.');
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Login failed. Please check your credentials.'
+        : 'Login failed';
+      setError(errorMessage);
     }
   };
 

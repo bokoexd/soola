@@ -3,6 +3,7 @@ import { Box, Typography, List, ListItem, ListItemText, Button, Paper, CircularP
 import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api';
+import axios from 'axios';
 
 // Get the WebSocket URL from environment variables with a fallback
 const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL || 
@@ -144,9 +145,11 @@ const GuestPage: React.FC = () => {
         });
         alert('Order received!');
         fetchGuestData();
-      } catch (err: any) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        alert(`Error placing order: ${(err as any).response?.data?.message || err.message}`);
+      } catch (error) {
+        const errorMessage = axios.isAxiosError(error) 
+          ? error.response?.data?.message || error.message
+          : 'Error placing order';
+        alert(`Error placing order: ${errorMessage}`);
       }
     }
   };

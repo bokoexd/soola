@@ -9,6 +9,7 @@ import LocalBarIcon from '@mui/icons-material/LocalBar';
 import api from '../api';
 import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // Get the WebSocket URL from environment variables with a fallback
 const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL || 
@@ -175,7 +176,6 @@ const AdminPage: React.FC = () => {
     try {
       const guestsArray = guestEmails.split(',').map(email => email.trim()).filter(email => email);
       
-      // Log the token to ensure it exists
       console.log("Token exists:", !!localStorage.getItem('token'));
       
       const response = await api.post('/events', {
@@ -183,7 +183,7 @@ const AdminPage: React.FC = () => {
         date: eventDate,
         description: eventDescription,
         guests: guestsArray,
-        defaultCoupons: 5, // Changed to 5
+        defaultCoupons: 5,
         cocktails,
       });
       console.log('Event created:', response.data);
@@ -194,19 +194,18 @@ const AdminPage: React.FC = () => {
       setGuestEmails('');
       setCocktails([{ name: '', description: '', imageUrl: '' }]);
       setOpenNewEventForm(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating event:', error);
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        alert(`Error creating event: ${(error as any).response.data.message || 'Server error'}`);
-      } else if (error.request) {
-        // The request was made but no response was received
-        alert("Error: No response received from server");
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          alert(`Error creating event: ${error.response.data?.message || 'Server error'}`);
+        } else if (error.request) {
+          alert("Error: No response received from server");
+        } else {
+          alert(`Error: ${error.message || 'Unknown error'}`);
+        }
       } else {
-        // Something happened in setting up the request that triggered an Error
-        alert(`Error: ${error.message}`);
+        alert('An unexpected error occurred');
       }
     }
   };
@@ -286,9 +285,11 @@ const AdminPage: React.FC = () => {
         fetchEventData(selectedEvent._id);
       }
       handleCloseGuestDialog();
-    } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      alert(`Error adding guest: ${(error as any).response?.data?.message || error.message}`);
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message || 'Unknown error'
+        : 'Failed to add guest';
+      alert(`Error adding guest: ${errorMessage}`);
     }
   };
 
@@ -301,9 +302,11 @@ const AdminPage: React.FC = () => {
         fetchEventData(selectedEvent._id);
       }
       handleCloseGuestDialog();
-    } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      alert(`Error removing guest: ${(error as any).response?.data?.message || error.message}`);
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message || 'Unknown error'
+        : 'Failed to remove guest';
+      alert(`Error removing guest: ${errorMessage}`);
     }
   };
 
@@ -322,9 +325,11 @@ const AdminPage: React.FC = () => {
       setOpenClaimCocktailDialog(false);
       setSelectedCocktailToClaim('');
       fetchEventData(selectedEvent._id); // Refresh guest data
-    } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      alert(`Error claiming cocktail: ${(error as any).response?.data?.message || error.message}`);
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message || 'Unknown error'
+        : 'Failed to claim cocktail';
+      alert(`Error claiming cocktail: ${errorMessage}`);
     }
   };
 

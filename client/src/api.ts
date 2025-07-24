@@ -18,39 +18,39 @@ const api = axios.create({
   timeout: process.env.NODE_ENV === 'production' ? 30000 : 10000
 });
 
-// Add request interceptor to handle CORS credentials and headers
+// Add request interceptor to handle token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Standard way to set headers in Axios
-      config.headers = config.headers || new axios.AxiosHeaders();
-      config.headers.Authorization = `Bearer ${token}`;
+      // Set Authorization header with token
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`
+      };
     }
     
-    // Log requests in development for debugging
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Request: ${config.method?.toUpperCase()} ${config.url}`);
-    } else {
-      // For production, log requests to help with debugging
-      console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
-    }
+    // Simple logging
+    console.log(`${config.method?.toUpperCase()} ${config.url}`);
     
     return config;
   },
   (error) => {
-    console.error('Request error:', error.message);
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor to handle auth errors
+// Add response interceptor for auth errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Log errors for debugging
+    // Simple error logging
+    console.error('API Error:', error);
+    
+    // Log more detailed error info when available
     if (error.response) {
       console.error('API Response Error:', {
         status: error.response.status,
@@ -62,16 +62,14 @@ api.interceptors.response.use(
         url: error.config?.url,
         message: error.message
       });
-    } else {
-      console.error('API Error:', error.message);
     }
     
+    // Handle 401 unauthorized errors
     if (error.response && error.response.status === 401) {
-      // If we get a 401, it might be because the token is expired
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       
-      // Check if we're not already on the login page to avoid redirect loops
+      // Redirect to login if not already there
       if (!window.location.pathname.includes('login')) {
         window.location.href = '/';
       }

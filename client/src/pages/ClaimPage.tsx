@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, TextField, Button, Paper } from '@mui/material';
-import api from '../api'; // Import the centralized API instance
+import api from '../api';
+import axios from 'axios';
 
 interface EventResponse {
   name: string;
@@ -56,14 +56,18 @@ const ClaimPage: React.FC = () => {
       setError('');
       // Assuming successful claim leads to guest dashboard
       navigate(`/guest/${response.data.guest._id}`);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error) {
       setMessage('');
-      const errorMessage = (err as any).response?.data?.message || 'An error occurred during claiming.';
-      setError(errorMessage);
-      if (err.response?.data?.requiresLogin) {
-        // If requires login, redirect to login page with email and eventId
-        navigate(`/guest-login/${eventId}?email=${email}`);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || 'An error occurred during claiming.';
+        setError(errorMessage);
+        
+        if (error.response?.data?.requiresLogin) {
+          // If requires login, redirect to login page with email and eventId
+          navigate(`/guest-login/${eventId}?email=${email}`);
+        }
+      } else {
+        setError('An unexpected error occurred');
       }
     }
   };
