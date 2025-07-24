@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from 'mongoose';
-
 import bcrypt from 'bcryptjs';
 
 export interface IGuest extends Document {
@@ -33,15 +32,23 @@ GuestSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-  if (this.password) { // Only hash if password is provided
+  
+  // Ensure password is a non-empty string before hashing
+  if (this.password && typeof this.password === 'string' && this.password.trim() !== '') {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
   next();
 });
 
-// Method to compare passwords
+// Method to compare passwords with proper type checking
 GuestSchema.methods.matchPassword = async function (enteredPassword: string) {
+  // If there's no password set or it's not a string, authentication fails
+  if (!this.password || typeof this.password !== 'string') {
+    return false;
+  }
+  
+  // Only compare if both passwords are valid strings
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

@@ -3,6 +3,18 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, TextField, Button, Paper } from '@mui/material';
 import api from '../api';
 
+// Define the response interface to properly type the API response
+interface GuestLoginResponse {
+  message: string;
+  guest: {
+    _id: string;
+    email: string;
+    claimed: boolean;
+    coupons: number;
+  };
+  token: string;
+}
+
 const GuestLoginPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
@@ -22,11 +34,11 @@ const GuestLoginPage: React.FC = () => {
   const handleLogin = async () => {
     setError('');
     try {
-      const response = await api.post('/guests/login', {
+      const response = await api.post<GuestLoginResponse>('/guests/login', {
         email,
         password,
       });
-      // Assuming the API returns guest ID upon successful login
+      // Now TypeScript knows response.data.guest exists and has an _id property
       navigate(`/guest/${response.data.guest._id}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
