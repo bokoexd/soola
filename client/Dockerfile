@@ -24,17 +24,24 @@ FROM nginx:alpine
 # Copy built files from previous stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Create a custom nginx config with SPA routing support
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Create a proper nginx config file rather than using echo
+RUN rm /etc/nginx/conf.d/default.conf
+# Create new config file with proper line endings and syntax
+RUN printf "server {\n\
+    listen 80;\n\
+    listen [::]:80;\n\
+    server_name _;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    location / {\n\
+        try_files \$uri \$uri/ /index.html;\n\
+    }\n\
+}\n" > /etc/nginx/conf.d/default.conf
+
+# Make sure the config is valid
+RUN nginx -t
 
 EXPOSE 80
 
-# Start nginx
+# Start nginx with daemon off to keep container running
 CMD ["nginx", "-g", "daemon off;"]
