@@ -243,6 +243,17 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleCompleteOrder = async (orderId: string) => {
+    try {
+      await api.put(`/orders/${orderId}/complete`);
+      // Remove the completed order from the orders list
+      setOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
+    } catch (error) {
+      console.error('Error completing order:', error);
+      alert('Failed to complete order. Please try again.');
+    }
+  };
+
   const handleDeleteEvent = async (eventId: string) => {
     try {
       await api.delete(`/events/${eventId}`);
