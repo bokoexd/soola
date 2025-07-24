@@ -13,6 +13,7 @@ RUN npm install --legacy-peer-deps --force
 COPY . .
 
 # Create empty fonts directory to avoid build errors
+COPY public/fonts src/fonts
 RUN mkdir -p src/fonts
 
 # Build with CI=true and additional flags to avoid build failing on type errors
