@@ -31,36 +31,8 @@ RUN apk --no-cache add curl
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Create a proper nginx config file
-RUN rm /etc/nginx/conf.d/default.conf
-RUN printf "server {
-	listen 80;
-	listen [::]:80;
-	server_name _;
-	
-	# Improve logging for troubleshooting
-	access_log /var/log/nginx/access.log;
-	error_log /var/log/nginx/error.log warn;
-	
-	# Root and index settings
-	root /usr/share/nginx/html;
-	index index.html;
-	
-	# Handle SPA routing
-	location / {
-		try_files \$uri \$uri/ /index.html;
-	}
-	
-	# Simple status page for health checks
-	location = /health {
-		access_log off;
-		add_header Content-Type text/plain;
-		return 200 'OK';
-	}
-	
-	# Handle 404 errors
-	error_page 404 /index.html;
-}
-" > /etc/nginx/conf.d/default.conf
+RUN rm /etc/nginx/conf.d/default.conf && \
+    printf "server {\n\tlisten 80;\n\tlisten [::]:80;\n\tserver_name _;\n\t\n\t# Improve logging for troubleshooting\n\taccess_log /var/log/nginx/access.log;\n\terror_log /var/log/nginx/error.log warn;\n\t\n\t# Root and index settings\n\troot /usr/share/nginx/html;\n\tindex index.html;\n\t\n\t# Handle SPA routing\n\tlocation / {\n\t\ttry_files \$uri \$uri/ /index.html;\n\t}\n\t\n\t# Simple status page for health checks\n\tlocation = /health {\n\t\taccess_log off;\n\t\tadd_header Content-Type text/plain;\n\t\treturn 200 'OK';\n\t}\n\t\n\t# Handle 404 errors\n\terror_page 404 /index.html;\n}\n" > /etc/nginx/conf.d/default.conf
 
 # Verify the nginx configuration is valid
 RUN nginx -t
