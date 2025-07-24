@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
 // Get the API base URL from environment variables with a fallback
 const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 
@@ -23,9 +23,9 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Type-safe way to set headers
-      config.headers = config.headers ?? {};
-      config.headers['Authorization'] = `Bearer ${token}`;
+      // Standard way to set headers in Axios
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
     // Log requests in development for debugging
