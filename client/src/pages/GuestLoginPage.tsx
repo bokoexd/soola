@@ -45,7 +45,8 @@ const GuestLoginPage: React.FC = () => {
       // Now TypeScript knows response.data.guest exists and has an _id property
       navigate(`/guest/${response.data.guest._id}`);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setError((err as any).response?.data?.message || 'Login failed. Please check your credentials.');
     }
   };
 

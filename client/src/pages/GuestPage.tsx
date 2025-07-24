@@ -145,7 +145,8 @@ const GuestPage: React.FC = () => {
         alert('Order received!');
         fetchGuestData();
       } catch (err: any) {
-        alert(`Error placing order: ${err.response?.data?.message || err.message}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        alert(`Error placing order: ${(err as any).response?.data?.message || err.message}`);
       }
     }
   };

@@ -40,19 +40,20 @@ const LoginPage: React.FC = () => {
         setError('Unauthorized role.');
       }
     } catch (err: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.error('Login error details:', err);
       
-      if (err.response) {
+      if ((err as any).response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        console.error('Error response data:', err.response.data);
-        setError(err.response.data.message || `Server error: ${err.response.status}`);
-      } else if (err.request) {
+        console.error('Error response data:', (err as any).response.data);
+        setError((err as any).response.data.message || `Server error: ${(err as any).response.status}`);
+      } else if ((err as any).request) {
         // The request was made but no response was received
         setError('No response from server. Please check your connection.');
       } else {
         // Something happened in setting up the request
-        setError(`Error: ${err.message || 'Unknown error'}`);
+        setError(`Error: ${(err as any).message || 'Unknown error'}`);
       }
     } finally {
       setLoading(false);

@@ -199,7 +199,8 @@ const AdminPage: React.FC = () => {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        alert(`Error creating event: ${error.response.data.message || 'Server error'}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        alert(`Error creating event: ${(error as any).response.data.message || 'Server error'}`);
       } else if (error.request) {
         // The request was made but no response was received
         alert("Error: No response received from server");
@@ -286,7 +287,8 @@ const AdminPage: React.FC = () => {
       }
       handleCloseGuestDialog();
     } catch (error: any) {
-      alert(`Error adding guest: ${error.response?.data?.message || error.message}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      alert(`Error adding guest: ${(error as any).response?.data?.message || error.message}`);
     }
   };
 
@@ -300,7 +302,8 @@ const AdminPage: React.FC = () => {
       }
       handleCloseGuestDialog();
     } catch (error: any) {
-      alert(`Error removing guest: ${error.response?.data?.message || error.message}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      alert(`Error removing guest: ${(error as any).response?.data?.message || error.message}`);
     }
   };
 
@@ -320,7 +323,8 @@ const AdminPage: React.FC = () => {
       setSelectedCocktailToClaim('');
       fetchEventData(selectedEvent._id); // Refresh guest data
     } catch (error: any) {
-      alert(`Error claiming cocktail: ${error.response?.data?.message || error.message}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      alert(`Error claiming cocktail: ${(error as any).response?.data?.message || error.message}`);
     }
   };
 

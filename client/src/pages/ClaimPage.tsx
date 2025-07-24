@@ -57,8 +57,9 @@ const ClaimPage: React.FC = () => {
       // Assuming successful claim leads to guest dashboard
       navigate(`/guest/${response.data.guest._id}`);
     } catch (err: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setMessage('');
-      const errorMessage = err.response?.data?.message || 'An error occurred during claiming.';
+      const errorMessage = (err as any).response?.data?.message || 'An error occurred during claiming.';
       setError(errorMessage);
       if (err.response?.data?.requiresLogin) {
         // If requires login, redirect to login page with email and eventId
