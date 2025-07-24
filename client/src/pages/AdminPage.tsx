@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, List, ListItem, ListItemText, Paper, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Collapse, BottomNavigation, BottomNavigationAction } from '@mui/material';
+import { Box, Typography, TextField, Button, List, ListItem, ListItemText, Paper, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Collapse, BottomNavigation, BottomNavigationAction, CircularProgress } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -94,7 +94,7 @@ const AdminPage: React.FC = () => {
 
   const [openGuestDialog, setOpenGuestDialog] = useState(false);
   const [guestEmailToAddRemove, setGuestEmailToAddRemove] = useState('');
-  const [loading, setLoading] = useState(true); // Renamed from isLoading to loading since it's already used
+  const [loading, setLoading] = useState(true); // Now we'll actually use this
   const [selectedEventForGuestManagement, setSelectedEventForGuestManagement] = useState<string | ''>('');
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState(0); // 0: Events, 1: Guests, 2: Orders
@@ -343,239 +343,244 @@ const AdminPage: React.FC = () => {
         <Button variant="contained" onClick={handleLogout} size="small">Logout</Button>
       </Box>
 
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
-        {selectedTab === 0 && ( // Events Tab
-          <Box>
-            {!selectedEvent && (
-              <Button fullWidth variant="contained" onClick={() => setOpenNewEventForm(!openNewEventForm)} sx={{ mb: 2 }}>
-                {openNewEventForm ? 'Close Form' : 'Create New Event'}
-              </Button>
-            )}
-            <Collapse in={openNewEventForm && !selectedEvent}>
-              <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
-                <Typography variant="h6" gutterBottom>Create New Event</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Event Name"
-                      value={eventName}
-                      onChange={(e) => setEventName(e.target.value)}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Event Date"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Description"
-                      multiline
-                      rows={3}
-                      value={eventDescription}
-                      onChange={(e) => setEventDescription(e.target.value)}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Guest Emails (comma-separated)"
-                      value={guestEmails}
-                      onChange={(e) => setGuestEmails(e.target.value)}
-                      helperText="e.g., guest1@example.com, guest2@example.com"
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>Cocktails</Typography>
-                    {cocktails.map((cocktail, index) => (
-                      <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
-                        <TextField
-                          label="Cocktail Name"
-                          value={cocktail.name}
-                          onChange={(e) => handleCocktailChange(index, 'name', e.target.value)}
-                          sx={{ flex: 1 }}
-                          size="small"
-                        />
-                        <TextField
-                          label="Description"
-                          value={cocktail.description}
-                          onChange={(e) => handleCocktailChange(index, 'description', e.target.value)}
-                          sx={{ flex: 1 }}
-                          size="small"
-                        />
-                        {cocktails.length > 1 && (
-                          <IconButton onClick={() => handleRemoveCocktail(index)} color="error" size="small">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    ))}
-                    <Button startIcon={<AddIcon />} onClick={handleAddCocktail} size="small">
-                      Add Cocktail
-                    </Button>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Button variant="contained" onClick={handleCreateEvent} fullWidth>
-                      Create Event
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Collapse>
-            <Paper elevation={3} sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Events</Typography>
-              <List dense>
-                {events.map((event) => (
-                  <ListItem key={event._id} divider button onClick={() => handleSelectEvent(event)}>
-                    <ListItemText primary={event.name} secondary={new Date(event.date).toLocaleDateString()} />
-                    <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event._id); }} color="error" size="small">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          </Box>
-        )}
-
-        {selectedTab === 1 && ( // Guests Tab
-          <Box>
-            {selectedEvent ? (
-              <Paper elevation={3} sx={{ p: 2 }}>
-                <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
-                  Back to Events
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50%' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+          {selectedTab === 0 && ( // Events Tab
+            <Box>
+              {!selectedEvent && (
+                <Button fullWidth variant="contained" onClick={() => setOpenNewEventForm(!openNewEventForm)} sx={{ mb: 2 }}>
+                  {openNewEventForm ? 'Close Form' : 'Create New Event'}
                 </Button>
-                <Typography variant="h6" gutterBottom>{selectedEvent.name} Guests</Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleOpenGuestDialog}
-                  sx={{ mb: 2 }}
-                  fullWidth
-                >
-                  Manage Guests
-                </Button>
-                <TableContainer component={Paper}>
-                  <Table size="small" aria-label="guests table">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Email</TableCell>
-                        <TableCell align="right">Coupons</TableCell>
-                        <TableCell align="right">Claimed</TableCell>
-                        <TableCell>Claimed Cocktails</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {guests.map((guest) => (
-                        <TableRow key={guest._id}>
-                          <TableCell component="th" scope="row">
-                            {guest.email}
-                          </TableCell>
-                          <TableCell align="right">{guest.coupons}</TableCell>
-                          <TableCell align="right">
-                            <Chip
-                              label={guest.claimed ? 'Yes' : 'No'}
-                              color={guest.claimed ? 'success' : 'error'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <List dense>
-                              {guest.claimedCocktails && guest.claimedCocktails.length > 0 ? (
-                                guest.claimedCocktails.map((cocktailName, idx) => (
-                                  <ListItem key={idx} disablePadding>
-                                    <ListItemText primary={cocktailName} />
-                                  </ListItem>
-                                ))
-                              ) : (
-                                <ListItem><ListItemText primary="None" /></ListItem>
-                              )}
-                            </List>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button onClick={() => handleToggleClaimed(guest._id)} color="info" size="small" sx={{ mb: 0.5 }}>
-                              Toggle Claimed
-                            </Button>
-                            <Button onClick={() => handleRevokeCoupons(guest._id)} color="warning" size="small" sx={{ mb: 0.5 }}>
-                              Revoke Coupons
-                            </Button>
-                            <Button onClick={() => handleDisableAccount(guest._id)} color="error" size="small" sx={{ mb: 0.5 }}>
-                              Disable Account
-                            </Button>
-                            <Button onClick={() => handleOpenClaimCocktailDialog(guest)} color="primary" size="small">
-                              Claim Cocktail
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+              )}
+              <Collapse in={openNewEventForm && !selectedEvent}>
+                <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>Create New Event</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Event Name"
+                        value={eventName}
+                        onChange={(e) => setEventName(e.target.value)}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Event Date"
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Description"
+                        multiline
+                        rows={3}
+                        value={eventDescription}
+                        onChange={(e) => setEventDescription(e.target.value)}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Guest Emails (comma-separated)"
+                        value={guestEmails}
+                        onChange={(e) => setGuestEmails(e.target.value)}
+                        helperText="e.g., guest1@example.com, guest2@example.com"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>Cocktails</Typography>
+                      {cocktails.map((cocktail, index) => (
+                        <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                          <TextField
+                            label="Cocktail Name"
+                            value={cocktail.name}
+                            onChange={(e) => handleCocktailChange(index, 'name', e.target.value)}
+                            sx={{ flex: 1 }}
+                            size="small"
+                          />
+                          <TextField
+                            label="Description"
+                            value={cocktail.description}
+                            onChange={(e) => handleCocktailChange(index, 'description', e.target.value)}
+                            sx={{ flex: 1 }}
+                            size="small"
+                          />
+                          {cocktails.length > 1 && (
+                            <IconButton onClick={() => handleRemoveCocktail(index)} color="error" size="small">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
                       ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            ) : (
+                      <Button startIcon={<AddIcon />} onClick={handleAddCocktail} size="small">
+                        Add Cocktail
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button variant="contained" onClick={handleCreateEvent} fullWidth>
+                        Create Event
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Collapse>
               <Paper elevation={3} sx={{ p: 2 }}>
-                <Typography>Select an event from the Events tab to view guests.</Typography>
-              </Paper>
-            )}
-          </Box>
-        )}
-
-        {selectedTab === 2 && ( // Orders Tab
-          <Box>
-            {selectedEvent ? (
-              <Paper elevation={3} sx={{ p: 2 }}>
-                <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
-                  Back to Events
-                </Button>
-                <Typography variant="h6" gutterBottom>{selectedEvent.name} Received Orders</Typography>
+                <Typography variant="h6" gutterBottom>Events</Typography>
                 <List dense>
-                  {orders.length === 0 ? (
-                    <ListItem><ListItemText primary="No received orders." /></ListItem>
-                  ) : (
-                    orders.map((order) => (
-                      <ListItem key={order._id} divider>
-                        <ListItemText
-                          primary={`${order.guest?.email || 'Unknown Guest'} - ${order.cocktail}`}
-                          secondary={
-                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              Requested: {new Date(order.createdAt).toLocaleTimeString()}
-                              <Chip
-                                label={order.status}
-                                color={order.status === 'received' ? 'primary' : 'success'}
-                                size="small"
-                              />
-                            </Box>
-                          }
-                        />
-                        <Button variant="contained" onClick={() => handleCompleteOrder(order._id)} size="small">
-                          Complete Order
-                        </Button>
-                      </ListItem>
-                    ))
-                  )}
+                  {events.map((event) => (
+                    <ListItem key={event._id} divider button onClick={() => handleSelectEvent(event)}>
+                      <ListItemText primary={event.name} secondary={new Date(event.date).toLocaleDateString()} />
+                      <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event._id); }} color="error" size="small">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </ListItem>
+                  ))}
                 </List>
               </Paper>
-            ) : (
-              <Paper elevation={3} sx={{ p: 2 }}>
-                <Typography>Select an event from the Events tab to view orders.</Typography>
-              </Paper>
-            )}
-          </Box>
-        )}
+            </Box>
+          )}
 
-      </Box>
+          {selectedTab === 1 && ( // Guests Tab
+            <Box>
+              {selectedEvent ? (
+                <Paper elevation={3} sx={{ p: 2 }}>
+                  <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
+                    Back to Events
+                  </Button>
+                  <Typography variant="h6" gutterBottom>{selectedEvent.name} Guests</Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleOpenGuestDialog}
+                    sx={{ mb: 2 }}
+                    fullWidth
+                  >
+                    Manage Guests
+                  </Button>
+                  <TableContainer component={Paper}>
+                    <Table size="small" aria-label="guests table">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Email</TableCell>
+                          <TableCell align="right">Coupons</TableCell>
+                          <TableCell align="right">Claimed</TableCell>
+                          <TableCell>Claimed Cocktails</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {guests.map((guest) => (
+                          <TableRow key={guest._id}>
+                            <TableCell component="th" scope="row">
+                              {guest.email}
+                            </TableCell>
+                            <TableCell align="right">{guest.coupons}</TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                label={guest.claimed ? 'Yes' : 'No'}
+                                color={guest.claimed ? 'success' : 'error'}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <List dense>
+                                {guest.claimedCocktails && guest.claimedCocktails.length > 0 ? (
+                                  guest.claimedCocktails.map((cocktailName, idx) => (
+                                    <ListItem key={idx} disablePadding>
+                                      <ListItemText primary={cocktailName} />
+                                    </ListItem>
+                                  ))
+                                ) : (
+                                  <ListItem><ListItemText primary="None" /></ListItem>
+                                )}
+                              </List>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Button onClick={() => handleToggleClaimed(guest._id)} color="info" size="small" sx={{ mb: 0.5 }}>
+                                Toggle Claimed
+                              </Button>
+                              <Button onClick={() => handleRevokeCoupons(guest._id)} color="warning" size="small" sx={{ mb: 0.5 }}>
+                                Revoke Coupons
+                              </Button>
+                              <Button onClick={() => handleDisableAccount(guest._id)} color="error" size="small" sx={{ mb: 0.5 }}>
+                                Disable Account
+                              </Button>
+                              <Button onClick={() => handleOpenClaimCocktailDialog(guest)} color="primary" size="small">
+                                Claim Cocktail
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              ) : (
+                <Paper elevation={3} sx={{ p: 2 }}>
+                  <Typography>Select an event from the Events tab to view guests.</Typography>
+                </Paper>
+              )}
+            </Box>
+          )}
+
+          {selectedTab === 2 && ( // Orders Tab
+            <Box>
+              {selectedEvent ? (
+                <Paper elevation={3} sx={{ p: 2 }}>
+                  <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
+                    Back to Events
+                  </Button>
+                  <Typography variant="h6" gutterBottom>{selectedEvent.name} Received Orders</Typography>
+                  <List dense>
+                    {orders.length === 0 ? (
+                      <ListItem><ListItemText primary="No received orders." /></ListItem>
+                    ) : (
+                      orders.map((order) => (
+                        <ListItem key={order._id} divider>
+                          <ListItemText
+                            primary={`${order.guest?.email || 'Unknown Guest'} - ${order.cocktail}`}
+                            secondary={
+                              <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                Requested: {new Date(order.createdAt).toLocaleTimeString()}
+                                <Chip
+                                  label={order.status}
+                                  color={order.status === 'received' ? 'primary' : 'success'}
+                                  size="small"
+                                />
+                              </Box>
+                            }
+                          />
+                          <Button variant="contained" onClick={() => handleCompleteOrder(order._id)} size="small">
+                            Complete Order
+                          </Button>
+                        </ListItem>
+                      ))
+                    )}
+                  </List>
+                </Paper>
+              ) : (
+                <Paper elevation={3} sx={{ p: 2 }}>
+                  <Typography>Select an event from the Events tab to view orders.</Typography>
+                </Paper>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
 
       <Dialog open={openGuestDialog} onClose={handleCloseGuestDialog}>
         <DialogTitle>Manage Guests for {selectedEvent?.name}</DialogTitle>

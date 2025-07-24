@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN npm install --production=false
+RUN npm install --omit=dev
 
 # Remove the incorrect file before building
 RUN rm -f ./src/pages/AdminPage.tsx

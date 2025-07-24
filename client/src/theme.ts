@@ -29,24 +29,24 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: ['Montserrat', 'Aileron', 'sans-serif'].join(','),
+    fontFamily: ['Montserrat', 'system-ui', 'sans-serif'].join(','),
     h1: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
     h2: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
     h3: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
     h4: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
     h5: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
     h6: {
-      fontFamily: 'More Sugar', // Title font
+      fontFamily: 'Dancing Script, cursive', // Replace with Google Font
     },
   },
   components: {

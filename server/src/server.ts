@@ -8,6 +8,7 @@ import orderRoutes, { setIoInstanceForOrders } from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { protect } from './controllers/userController'; // Import protect middleware
+import { ensureAdminExists } from './seedAdmin'; // Import admin seeding function
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +24,11 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 mongoose.connect('mongodb://localhost:27017/soola-sessions')
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    // Ensure there's always an admin user
+    ensureAdminExists();
+  })
   .catch(err => console.log(err));
 
 // Pass the io instance to the order controller

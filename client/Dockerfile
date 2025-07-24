@@ -5,20 +5,18 @@ WORKDIR /app
 # First copy only package files to leverage Docker cache for npm install
 COPY package*.json ./
 
-# Install dependencies with --legacy-peer-deps to avoid dependency conflicts
-# and ignore engine requirements with --force
-RUN npm install --legacy-peer-deps --force
+# Install dependencies with modern flags to avoid warnings
+RUN npm install --no-fund --no-audit
 
 # Now copy the rest of the files
 COPY . .
 
-# Create empty fonts directory to avoid build errors
-COPY public/fonts src/fonts
-RUN mkdir -p src/fonts
+# Create fonts directory structure to avoid build errors
+RUN mkdir -p public/fonts src/fonts
 
 # Build with CI=true and additional flags to avoid build failing on type errors
 # Add NODE_OPTIONS to increase memory limit and avoid heap out of memory errors
-RUN NODE_OPTIONS="--max_old_space_size=4096" CI=true npm run build
+RUN NODE_OPTIONS="--max_old_space_size=4096" CI=true GENERATE_SOURCEMAP=false npm run build
 
 # Use nginx for serving static files in production
 FROM nginx:alpine
