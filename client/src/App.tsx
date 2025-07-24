@@ -6,12 +6,13 @@ import GuestPage from './pages/GuestPage';
 import ClaimPage from './pages/ClaimPage';
 import GuestLoginPage from './pages/GuestLoginPage';
 
-// Create the missing ProtectedRoute component
-const ProtectedRoute = ({ allowedRoles = [] }) => {
+// Create the missing ProtectedRoute component with proper type checking
+const ProtectedRoute = ({ allowedRoles = [] }: { allowedRoles: string[] }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
   
-  if (!token || !allowedRoles.includes(userRole)) {
+  // Fixed type checking - userRole can be null
+  if (!token || !userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
   

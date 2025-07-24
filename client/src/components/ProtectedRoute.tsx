@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
@@ -10,11 +9,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
 
-  if (!token) {
+  // Fixed type checking - userRole can be null
+  if (!token || !userRole) {
     return <Navigate to="/" replace />;
   }
 
-  if (userRole && allowedRoles.includes(userRole)) {
+  if (allowedRoles.includes(userRole)) {
     return <Outlet />;
   }
 
