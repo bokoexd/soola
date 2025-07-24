@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, List, ListItem, ListItemText, Button, Paper } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Button, Paper, CircularProgress } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api';
@@ -150,7 +150,11 @@ const GuestPage: React.FC = () => {
     }
   };
 
-  if (loading) return <Typography>Loading...</Typography>;
+  if (loading) return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <CircularProgress />
+    </Box>
+  );
   if (error) return <Typography color="error">{error}</Typography>;
   if (!guestData) return <Typography>No guest data found.</Typography>;
 
