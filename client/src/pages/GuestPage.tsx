@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, List, ListItem, ListItemText, Button, Paper } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Button, Paper } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api';
@@ -69,6 +69,7 @@ interface GuestData {
     email: string;
     coupons: number;
     event: EventDetails; // Add event details here
+    claimedCocktails: string[]; // New field to store claimed cocktails
   };
   orders: {
     _id: string;
@@ -99,6 +100,10 @@ const GuestPage: React.FC = () => {
   useEffect(() => {
     fetchGuestData();
 
+    if (guestId) {
+      socket.emit('joinGuestRoom', guestId);
+    }
+
     socket.on('couponUpdate', (data: { guestId: string; coupons: number }) => {
       setGuestData(prevData => {
         if (!prevData || data.guestId !== prevData.guest._id) return prevData;
@@ -112,7 +117,15 @@ const GuestPage: React.FC = () => {
     socket.on('orderCompleted', (order) => {
       // Re-fetch data to update order status and coupon count for the guest
       // This ensures the UI is consistent with the backend state after an order is completed.
-      fetchGuestData();
+      if (guestId === order.guest._id) {
+        setGuestData(prevData => {
+          if (!prevData) return prevData;
+          return {
+            ...prevData,
+            orders: prevData.orders.map(o => o._id === order._id ? { ...o, status: 'complete' } : o)
+          };
+        });
+      }
     });
 
     return () => {
@@ -123,16 +136,17 @@ const GuestPage: React.FC = () => {
 
   const handleRedeemCocktail = async (cocktailName: string) => {
     if (!guestId) return;
-    try {
-      await api.post('/orders', {
-        guestId,
-        cocktail: cocktailName,
-      });
-      alert('Order placed! Please wait for bartender to process.');
-      // Optimistically update UI or re-fetch data
-      fetchGuestData();
-    } catch (err: any) {
-      alert(`Error placing order: ${err.response?.data?.message || err.message}`);
+    if (window.confirm(`Are you sure you want to claim ${cocktailName} now?`)) {
+      try {
+        await api.post('/orders', {
+          guestId,
+          cocktail: cocktailName,
+        });
+        alert('Order received!');
+        fetchGuestData();
+      } catch (err: any) {
+        alert(`Error placing order: ${err.response?.data?.message || err.message}`);
+      }
     }
   };
 
@@ -141,7 +155,7 @@ const GuestPage: React.FC = () => {
   if (!guestData) return <Typography>No guest data found.</Typography>;
 
   return (
-    <Container maxWidth="md">
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
       <Box sx={{ mt: 8 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Welcome, {guestData.guest.email}!
@@ -152,7 +166,7 @@ const GuestPage: React.FC = () => {
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6">Redeem a Cocktail:</Typography>
-            {guestData.guest.event.cocktails.map((cocktail) => (
+            {guestData.guest.event.cocktails.filter(cocktail => !guestData.guest.claimedCocktails.includes(cocktail.name)).map((cocktail) => (
               <Button
                 key={cocktail.name}
                 variant="contained"
@@ -167,12 +181,30 @@ const GuestPage: React.FC = () => {
         </Paper>
 
         <Paper elevation={3} sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom>Your Orders</Typography>
+          <Typography variant="h5" gutterBottom>Your Received Orders</Typography>
           <List>
-            {guestData.orders.length === 0 ? (
-              <ListItem><ListItemText primary="No orders yet." /></ListItem>
+            {guestData.orders.filter(o => o.status === 'received').length === 0 ? (
+              <ListItem><ListItemText primary="No received orders yet." /></ListItem>
             ) : (
-              guestData.orders.map((order) => (
+              guestData.orders.filter(o => o.status === 'received').map((order) => (
+                <ListItem key={order._id} divider>
+                  <ListItemText
+                    primary={order.cocktail}
+                    secondary={`Status: ${order.status} - ${new Date(order.createdAt).toLocaleString()}`}
+                  />
+                </ListItem>
+              ))
+            )}
+          </List>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
+          <Typography variant="h5" gutterBottom>Your Completed Orders</Typography>
+          <List>
+            {guestData.orders.filter(o => o.status === 'complete').length === 0 ? (
+              <ListItem><ListItemText primary="No completed orders yet." /></ListItem>
+            ) : (
+              guestData.orders.filter(o => o.status === 'complete').map((order) => (
                 <ListItem key={order._id} divider>
                   <ListItemText
                     primary={order.cocktail}
@@ -184,7 +216,7 @@ const GuestPage: React.FC = () => {
           </List>
         </Paper>
       </Box>
-    </Container>
+    </Box>
   );
 };
 

@@ -183,6 +183,16 @@ io.on('connection', (socket) => {
   console.log(`Socket transport: ${socket.conn.transport.name}`);
   // Use a safe way to log socket connection info
   console.log(`Socket connection established`);
+
+  socket.on('joinGuestRoom', (guestId) => {
+    socket.join(guestId);
+    console.log(`Socket ${socket.id} joined guest room ${guestId}`);
+  });
+
+  socket.on('joinAdminRoom', () => {
+    socket.join('admin');
+    console.log(`Socket ${socket.id} joined admin room`);
+  });
   
   socket.on('disconnect', (reason) => {
     console.log(`user disconnected: ${socket.id}, reason: ${reason}`);

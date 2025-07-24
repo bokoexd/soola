@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, TextField, Button, List, ListItem, ListItemText, Paper, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Collapse } from '@mui/material';
+import { Box, Typography, TextField, Button, List, ListItem, ListItemText, Paper, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Collapse, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import EventIcon from '@mui/icons-material/Event';
+import PeopleIcon from '@mui/icons-material/People';
+import LocalBarIcon from '@mui/icons-material/LocalBar';
 import api from '../api';
 import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +65,7 @@ interface Guest {
   claimed: boolean;
   coupons: number;
   couponHistory: { cocktail: string; timestamp: Date; }[];
+  claimedCocktails: string[]; // New field to store claimed cocktails
 }
 
 interface Order {
@@ -93,6 +97,11 @@ const AdminPage: React.FC = () => {
   const [isLoading, setLoading] = useState(true); // Renamed to avoid unused variable
   const [selectedEventForGuestManagement, setSelectedEventForGuestManagement] = useState<string | ''>('');
   const navigate = useNavigate();
+  const [selectedTab, setSelectedTab] = useState(0); // 0: Events, 1: Guests, 2: Orders
+
+  const [openClaimCocktailDialog, setOpenClaimCocktailDialog] = useState(false);
+  const [selectedGuestForCocktailClaim, setSelectedGuestForCocktailClaim] = useState<Guest | null>(null);
+  const [selectedCocktailToClaim, setSelectedCocktailToClaim] = useState('');
 
   const fetchAdminData = async () => {
     try {
@@ -111,7 +120,7 @@ const AdminPage: React.FC = () => {
       setLoading(true);
       const [guestsResponse, ordersResponse] = await Promise.all([
         api.get<Guest[]>(`/admin/event/${eventId}/guests`),
-        api.get<Order[]>(`/admin/event/${eventId}/orders`)
+        api.get<Order[]>(`/admin/event/${eventId}/orders?status=received`)
       ]);
       setGuests(guestsResponse.data);
       setOrders(ordersResponse.data);
@@ -125,9 +134,11 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     fetchAdminData();
 
+    socket.emit('joinAdminRoom');
+
     socket.on('newOrder', (order: Order) => {
       if (selectedEvent && order.guest.event._id === selectedEvent._id) {
-        setOrders((prevOrders) => [...prevOrders, order]);
+        setOrders((prevOrders) => [order, ...prevOrders]);
       }
     });
 
@@ -136,7 +147,6 @@ const AdminPage: React.FC = () => {
         setOrders((prevOrders) =>
           prevOrders.filter((order) => order._id !== completedOrder._id)
         );
-        fetchEventData(selectedEvent._id);
       }
     });
 
@@ -147,7 +157,7 @@ const AdminPage: React.FC = () => {
   }, [selectedEvent]);
 
   const handleAddCocktail = () => {
-    setCocktails([...cocktails, { name: '', description: '' }]);
+    setCocktails([...cocktails, { name: '', description: '', imageUrl: '' }]);
   };
 
   const handleCocktailChange = (index: number, field: 'name' | 'description', value: string) => {
@@ -173,7 +183,7 @@ const AdminPage: React.FC = () => {
         date: eventDate,
         description: eventDescription,
         guests: guestsArray,
-        defaultCoupons: cocktails.length,
+        defaultCoupons: 5, // Changed to 5
         cocktails,
       });
       console.log('Event created:', response.data);
@@ -283,11 +293,23 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const handleCompleteOrder = async (orderId: string) => {
+  const handleOpenClaimCocktailDialog = (guest: Guest) => {
+    setSelectedGuestForCocktailClaim(guest);
+    setOpenClaimCocktailDialog(true);
+  };
+
+  const handleClaimCocktailForGuest = async () => {
+    if (!selectedGuestForCocktailClaim || !selectedCocktailToClaim || !selectedEvent) return;
     try {
-      await api.put(`/orders/${orderId}/complete`);
-    } catch (error) {
-      console.error('Error completing order:', error);
+      await api.put(`/guests/${selectedGuestForCocktailClaim._id}/claim-cocktail`, {
+        cocktailName: selectedCocktailToClaim,
+      });
+      alert(`${selectedCocktailToClaim} claimed for ${selectedGuestForCocktailClaim.email}`);
+      setOpenClaimCocktailDialog(false);
+      setSelectedCocktailToClaim('');
+      fetchEventData(selectedEvent._id); // Refresh guest data
+    } catch (error: any) {
+      alert(`Error claiming cocktail: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -302,162 +324,151 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <Typography variant="h6" component="h1">
           Admin Dashboard
         </Typography>
-        <Button variant="contained" onClick={handleLogout}>Logout</Button>
+        <Button variant="contained" onClick={handleLogout} size="small">Logout</Button>
       </Box>
 
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
-          {!selectedEvent && (
-            <Button fullWidth variant="contained" onClick={() => setOpenNewEventForm(!openNewEventForm)} sx={{ mb: 2 }}>
-              {openNewEventForm ? 'Close Form' : 'Create New Event'}
-            </Button>
-          )}
-          <Collapse in={openNewEventForm && !selectedEvent}>
-            <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h5" gutterBottom>Create New Event</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Event Name"
-                    value={eventName}
-                    onChange={(e) => setEventName(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Event Date"
-                    type="date"
-                    InputLabelProps={{ shrink: true }}
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    multiline
-                    rows={3}
-                    value={eventDescription}
-                    onChange={(e) => setEventDescription(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Guest Emails (comma-separated)"
-                    value={guestEmails}
-                    onChange={(e) => setGuestEmails(e.target.value)}
-                    helperText="e.g., guest1@example.com, guest2@example.com"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Cocktails</Typography>
-                  {cocktails.map((cocktail, index) => (
-                    <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-                      <TextField
-                        label="Cocktail Name"
-                        value={cocktail.name}
-                        onChange={(e) => handleCocktailChange(index, 'name', e.target.value)}
-                        sx={{ flex: 1 }}
-                      />
-                      <TextField
-                        label="Cocktail Description"
-                        value={cocktail.description}
-                        onChange={(e) => handleCocktailChange(index, 'description', e.target.value)}
-                        sx={{ flex: 1 }}
-                      />
-                      {cocktails.length > 1 && (
-                        <IconButton onClick={() => handleRemoveCocktail(index)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-                  <Button startIcon={<AddIcon />} onClick={handleAddCocktail}>
-                    Add Cocktail
-                  </Button>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button variant="contained" onClick={handleCreateEvent}>
-                    Create Event
-                  </Button>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Collapse>
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>Events</Typography>
-            <List>
-              {events.map((event) => (
-                <ListItem key={event._id} divider button onClick={() => handleSelectEvent(event)}>
-                  <ListItemText primary={event.name} secondary={new Date(event.date).toLocaleDateString()} />
-                  <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event._id); }} color="error">
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={8}>
-          {selectedEvent ? (
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }}>
-                Back to Events
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+        {selectedTab === 0 && ( // Events Tab
+          <Box>
+            {!selectedEvent && (
+              <Button fullWidth variant="contained" onClick={() => setOpenNewEventForm(!openNewEventForm)} sx={{ mb: 2 }}>
+                {openNewEventForm ? 'Close Form' : 'Create New Event'}
               </Button>
-              <Typography variant="h5" gutterBottom>{selectedEvent.name} Details</Typography>
-              <Typography variant="body1">Date: {new Date(selectedEvent.date).toLocaleDateString()}</Typography>
-              <Typography variant="body1">Description: {selectedEvent.description}</Typography>
-              <Typography variant="body1">Default Coupons: {selectedEvent.defaultCoupons}</Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6">Cocktails:</Typography>
-                <List dense>
-                  {selectedEvent.cocktails.map((cocktail, index) => (
-                    <ListItem key={index}>
-                      <ListItemText primary={cocktail.name} secondary={cocktail.description} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6">QR Code:</Typography>
-                <img src={selectedEvent.qrCode} alt="QR Code" style={{ maxWidth: '200px' }} />
-              </Box>
-              <Box sx={{ mt: 4 }}>
-                <Typography variant="h5" gutterBottom>Guests Overview</Typography>
+            )}
+            <Collapse in={openNewEventForm && !selectedEvent}>
+              <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+                <Typography variant="h6" gutterBottom>Create New Event</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Event Name"
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Event Date"
+                      type="date"
+                      InputLabelProps={{ shrink: true }}
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Description"
+                      multiline
+                      rows={3}
+                      value={eventDescription}
+                      onChange={(e) => setEventDescription(e.target.value)}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Guest Emails (comma-separated)"
+                      value={guestEmails}
+                      onChange={(e) => setGuestEmails(e.target.value)}
+                      helperText="e.g., guest1@example.com, guest2@example.com"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>Cocktails</Typography>
+                    {cocktails.map((cocktail, index) => (
+                      <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                        <TextField
+                          label="Cocktail Name"
+                          value={cocktail.name}
+                          onChange={(e) => handleCocktailChange(index, 'name', e.target.value)}
+                          sx={{ flex: 1 }}
+                          size="small"
+                        />
+                        <TextField
+                          label="Description"
+                          value={cocktail.description}
+                          onChange={(e) => handleCocktailChange(index, 'description', e.target.value)}
+                          sx={{ flex: 1 }}
+                          size="small"
+                        />
+                        {cocktails.length > 1 && (
+                          <IconButton onClick={() => handleRemoveCocktail(index)} color="error" size="small">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    ))}
+                    <Button startIcon={<AddIcon />} onClick={handleAddCocktail} size="small">
+                      Add Cocktail
+                    </Button>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button variant="contained" onClick={handleCreateEvent} fullWidth>
+                      Create Event
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Collapse>
+            <Paper elevation={3} sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>Events</Typography>
+              <List dense>
+                {events.map((event) => (
+                  <ListItem key={event._id} divider button onClick={() => handleSelectEvent(event)}>
+                    <ListItemText primary={event.name} secondary={new Date(event.date).toLocaleDateString()} />
+                    <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event._id); }} color="error" size="small">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          </Box>
+        )}
+
+        {selectedTab === 1 && ( // Guests Tab
+          <Box>
+            {selectedEvent ? (
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
+                  Back to Events
+                </Button>
+                <Typography variant="h6" gutterBottom>{selectedEvent.name} Guests</Typography>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={handleOpenGuestDialog}
                   sx={{ mb: 2 }}
+                  fullWidth
                 >
                   Manage Guests
                 </Button>
                 <TableContainer component={Paper}>
-                  <Table sx={{ minWidth: 650 }} aria-label="guests table">
+                  <Table size="small" aria-label="guests table">
                     <TableHead>
                       <TableRow>
                         <TableCell>Email</TableCell>
                         <TableCell align="right">Coupons</TableCell>
                         <TableCell align="right">Claimed</TableCell>
-                        <TableCell>Used Coupons</TableCell>
+                        <TableCell>Claimed Cocktails</TableCell>
                         <TableCell align="right">Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {guests.map((guest) => (
-                        <TableRow
-                          key={guest._id}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                        >
+                        <TableRow key={guest._id}>
                           <TableCell component="th" scope="row">
                             {guest.email}
                           </TableCell>
@@ -471,26 +482,29 @@ const AdminPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <List dense>
-                              {guest.couponHistory && guest.couponHistory.length > 0 ? (
-                                guest.couponHistory.map((item, idx) => (
+                              {guest.claimedCocktails && guest.claimedCocktails.length > 0 ? (
+                                guest.claimedCocktails.map((cocktailName, idx) => (
                                   <ListItem key={idx} disablePadding>
-                                    <ListItemText primary={`${item.cocktail} (${new Date(item.timestamp).toLocaleTimeString()})`} />
+                                    <ListItemText primary={cocktailName} />
                                   </ListItem>
                                 ))
                               ) : (
-                                <ListItem><ListItemText primary="No coupons used" /></ListItem>
+                                <ListItem><ListItemText primary="None" /></ListItem>
                               )}
                             </List>
                           </TableCell>
                           <TableCell align="right">
-                            <Button onClick={() => handleToggleClaimed(guest._id)} color="info" sx={{ mr: 1 }}>
+                            <Button onClick={() => handleToggleClaimed(guest._id)} color="info" size="small" sx={{ mb: 0.5 }}>
                               Toggle Claimed
                             </Button>
-                            <Button onClick={() => handleRevokeCoupons(guest._id)} color="warning" sx={{ mr: 1 }}>
+                            <Button onClick={() => handleRevokeCoupons(guest._id)} color="warning" size="small" sx={{ mb: 0.5 }}>
                               Revoke Coupons
                             </Button>
-                            <Button onClick={() => handleDisableAccount(guest._id)} color="error">
+                            <Button onClick={() => handleDisableAccount(guest._id)} color="error" size="small" sx={{ mb: 0.5 }}>
                               Disable Account
+                            </Button>
+                            <Button onClick={() => handleOpenClaimCocktailDialog(guest)} color="primary" size="small">
+                              Claim Cocktail
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -498,12 +512,26 @@ const AdminPage: React.FC = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </Box>
-              <Box sx={{ mt: 4 }}>
-                <Typography variant="h5" gutterBottom>Pending Orders</Typography>
-                <List>
+              </Paper>
+            ) : (
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Typography>Select an event from the Events tab to view guests.</Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
+
+        {selectedTab === 2 && ( // Orders Tab
+          <Box>
+            {selectedEvent ? (
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Button variant="contained" onClick={() => setSelectedEvent(null)} sx={{ mb: 2 }} fullWidth>
+                  Back to Events
+                </Button>
+                <Typography variant="h6" gutterBottom>{selectedEvent.name} Received Orders</Typography>
+                <List dense>
                   {orders.length === 0 ? (
-                    <ListItem><ListItemText primary="No pending orders." /></ListItem>
+                    <ListItem><ListItemText primary="No received orders." /></ListItem>
                   ) : (
                     orders.map((order) => (
                       <ListItem key={order._id} divider>
@@ -514,26 +542,29 @@ const AdminPage: React.FC = () => {
                               Requested: {new Date(order.createdAt).toLocaleTimeString()}
                               <Chip
                                 label={order.status}
-                                color={order.status === 'pending' ? 'warning' : 'success'}
+                                color={order.status === 'received' ? 'primary' : 'success'}
                                 size="small"
                               />
                             </Box>
                           }
                         />
-                        <Button variant="contained" onClick={() => handleCompleteOrder(order._id)}>
+                        <Button variant="contained" onClick={() => handleCompleteOrder(order._id)} size="small">
                           Complete Order
                         </Button>
                       </ListItem>
                     ))
                   )}
                 </List>
-              </Box>
-            </Paper>
-          ) : (
-            <Typography>Select an event to view details</Typography>
-          )}
-        </Grid>
-      </Grid>
+              </Paper>
+            ) : (
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Typography>Select an event from the Events tab to view orders.</Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
+
+      </Box>
 
       <Dialog open={openGuestDialog} onClose={handleCloseGuestDialog}>
         <DialogTitle>Manage Guests for {selectedEvent?.name}</DialogTitle>
@@ -546,6 +577,7 @@ const AdminPage: React.FC = () => {
             fullWidth
             value={guestEmailToAddRemove}
             onChange={(e) => setGuestEmailToAddRemove(e.target.value)}
+            size="small"
           />
         </DialogContent>
         <DialogActions>
@@ -554,8 +586,42 @@ const AdminPage: React.FC = () => {
           <Button onClick={handleRemoveGuestFromEvent} startIcon={<RemoveIcon />} color="error">Remove Guest</Button>
         </DialogActions>
       </Dialog>
-    </Container>
+
+      <BottomNavigation
+        value={selectedTab}
+        onChange={(event, newValue) => {
+          setSelectedTab(newValue);
+        }}
+        showLabels
+        sx={{ width: '100%', position: 'sticky', bottom: 0, mt: 'auto', borderTop: '1px solid #e0e0e0' }}
+      >
+        <BottomNavigationAction label="Events" icon={<EventIcon />} />
+        <BottomNavigationAction label="Guests" icon={<PeopleIcon />} />
+        <BottomNavigationAction label="Orders" icon={<LocalBarIcon />} />
+      </BottomNavigation>
+
+      <Dialog open={openClaimCocktailDialog} onClose={() => setOpenClaimCocktailDialog(false)}>
+        <DialogTitle>Claim Cocktail for {selectedGuestForCocktailClaim?.email}</DialogTitle>
+        <DialogContent>
+          <List>
+            {selectedEvent?.cocktails.map((cocktail) => (
+              <ListItem key={cocktail.name} button onClick={() => setSelectedCocktailToClaim(cocktail.name)}>
+                <ListItemText primary={cocktail.name} />
+              </ListItem>
+            ))}
+          </List>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Selected: {selectedCocktailToClaim || 'None'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenClaimCocktailDialog(false)}>Cancel</Button>
+          <Button onClick={handleClaimCocktailForGuest} disabled={!selectedCocktailToClaim}>Claim</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
 export default AdminPage;
+

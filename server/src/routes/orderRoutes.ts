@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOrder, getPendingOrders, completeOrder, setIoInstance } from '../controllers/orderController';
+import { createOrder, getReceivedOrders, completeOrder, setIoInstance } from '../controllers/orderController';
 import { protect, authorize } from '../controllers/userController';
 import { Server } from 'socket.io';
 
@@ -12,7 +12,7 @@ export const setIoInstanceForOrders = (ioInstance: Server) => {
 };
 
 router.post('/', createOrder);
-router.get('/pending', protect, authorize('admin'), getPendingOrders);
+router.get('/received', protect, authorize('admin'), getReceivedOrders);
 router.put('/:orderId/complete', protect, authorize('admin'), completeOrder);
 
 export default router;

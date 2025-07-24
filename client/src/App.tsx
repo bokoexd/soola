@@ -5,7 +5,7 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import GuestPage from './pages/GuestPage';
 import ClaimPage from './pages/ClaimPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import GuestLoginPage from './pages/GuestLoginPage';
 
 function App() {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ function App() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/claim/:eventId" element={<ClaimPage />} />
       <Route path="/guest/:guestId" element={<GuestPage />} />
+      <Route path="/guest-login/:eventId" element={<GuestLoginPage />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

@@ -29,9 +29,16 @@ export const getGuestsForEvent = async (req: Request, res: Response) => {
 export const getOrdersForEvent = async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
+    const { status } = req.query;
     const guests = await Guest.find({ event: eventId });
     const guestIds = guests.map(guest => guest._id);
-    const orders = await Order.find({ guest: { $in: guestIds } }).populate('guest');
+    
+    let query: any = { guest: { $in: guestIds } };
+    if (status) {
+      query.status = status;
+    }
+
+    const orders = await Order.find(query).populate('guest');
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching orders for event', error });

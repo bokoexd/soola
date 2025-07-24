@@ -23,13 +23,18 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'No coupons remaining.' });
     }
 
-    const order = new Order({ guest: guestId, cocktail, status: 'pending' });
+    guest.coupons -= 1;
+    await guest.save();
+
+    io.to(guest._id.toString()).emit('couponUpdate', { guestId: guest._id, coupons: guest.coupons }); // Notify guest
+
+    const order = new Order({ guest: guestId, cocktail, status: 'received' });
     await order.save();
 
     // Populate the guest field before emitting
     await order.populate('guest');
 
-    io.emit('newOrder', order); // Notify bartenders
+    io.to('admin').emit('newOrder', order); // Notify bartenders
 
     res.status(201).json({ message: 'Order placed successfully!', order });
   } catch (error) {
@@ -37,12 +42,12 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-export const getPendingOrders = async (req: Request, res: Response) => {
+export const getReceivedOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find({ status: 'pending' }).populate('guest').sort({ createdAt: 1 });
+    const orders = await Order.find({ status: 'received' }).populate('guest').sort({ createdAt: 1 });
     res.status(200).json(orders);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching pending orders', error });
+    res.status(500).json({ message: 'Error fetching received orders', error });
   }
 };
 
@@ -64,13 +69,12 @@ export const completeOrder = async (req: Request, res: Response) => {
 
     const guest = await Guest.findById(order.guest._id);
     if (guest) {
-      guest.coupons -= 1;
       guest.couponHistory.push({ cocktail: order.cocktail, timestamp: new Date() });
       await guest.save();
-      io.emit('couponUpdate', { guestId: guest._id, coupons: guest.coupons }); // Notify guest
     }
 
-    io.emit('orderCompleted', order); // Notify bartender and admin
+    io.to(order.guest._id.toString()).emit('orderCompleted', order); // Notify guest
+    io.to('admin').emit('orderCompleted', order); // Notify admin
 
     res.status(200).json({ message: 'Order completed successfully!', order });
   } catch (error) {
