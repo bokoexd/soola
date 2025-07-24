@@ -18,9 +18,7 @@ RUN mkdir -p src/fonts
 
 # Build with CI=true and additional flags to avoid build failing on type errors
 # Add NODE_OPTIONS to increase memory limit and avoid heap out of memory errors
-RUN NODE_OPTIONS="--max_old_space_size=4096" CI=true SKIP_PREFLIGHT_CHECK=true DISABLE_ESLINT_PLUGIN=true npm run build || \
-    (echo "Build encountered errors but continuing..." && \
-     NODE_OPTIONS="--max_old_space_size=4096" CI=true GENERATE_SOURCEMAP=false SKIP_PREFLIGHT_CHECK=true npm run build)
+RUN NODE_OPTIONS="--max_old_space_size=4096" CI=true npm run build
 
 # Use nginx for serving static files in production
 FROM nginx:alpine
