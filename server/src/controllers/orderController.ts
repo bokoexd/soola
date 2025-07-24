@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import Order from '../models/Order';
-import Guest from '../models/Guest';
+import Guest, { IGuest } from '../models/Guest';
 import { Server } from 'socket.io';
+import mongoose from 'mongoose';
 
 // This will be passed from index.ts
 let io: Server;
@@ -13,7 +14,7 @@ export const createOrder = async (req: Request, res: Response) => {
   try {
     const { guestId, cocktail } = req.body;
 
-    const guest = await Guest.findById(guestId);
+    const guest = await Guest.findById(guestId) as IGuest | null;
     if (!guest) {
       return res.status(404).json({ message: 'Guest not found' });
     }
@@ -25,7 +26,9 @@ export const createOrder = async (req: Request, res: Response) => {
     guest.coupons -= 1;
     await guest.save();
 
-    io.to(guest._id.toString()).emit('couponUpdate', { guestId: guest._id, coupons: guest.coupons }); // Notify guest
+    // Convert MongoDB ObjectId to string explicitly before emitting
+    const guestIdString = guest._id.toString();
+    io.to(guestIdString).emit('couponUpdate', { guestId: guestIdString, coupons: guest.coupons }); // Notify guest
 
     // Fix: Change 'received' to 'pending' to match the Order model's enum
     const order = new Order({ guest: guestId, cocktail, status: 'pending' });
@@ -68,13 +71,18 @@ export const completeOrder = async (req: Request, res: Response) => {
     order.status = 'complete';
     await order.save();
 
-    const guest = await Guest.findById(order.guest._id);
+    // Safely access order.guest._id by ensuring it's properly typed
+    const guestId = order.guest._id?.toString();
+    
+    const guest = await Guest.findById(guestId);
     if (guest) {
       guest.couponHistory.push({ cocktail: order.cocktail, timestamp: new Date() });
       await guest.save();
     }
 
-    io.to(order.guest._id.toString()).emit('orderCompleted', order); // Notify guest
+    if (guestId) {
+      io.to(guestId).emit('orderCompleted', order); // Notify guest
+    }
     io.to('admin').emit('orderCompleted', order); // Notify admin
 
     res.status(200).json({ message: 'Order completed successfully!', order });

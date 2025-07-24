@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export interface IGuest extends Document {
+  _id: mongoose.Types.ObjectId; // Explicitly define _id property
   email: string;
   password?: string; // Make password optional for now, will be required on first claim
   event: mongoose.Types.ObjectId;

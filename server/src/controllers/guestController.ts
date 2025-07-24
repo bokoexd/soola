@@ -1,9 +1,9 @@
-
 import { Request, Response } from 'express';
-import Guest from '../models/Guest';
+import Guest, { IGuest } from '../models/Guest';
 import Event from '../models/Event';
 import Order from '../models/Order';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
@@ -13,7 +13,7 @@ export const guestLogin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const guest = await Guest.findOne({ email }).select('+password'); // Select password explicitly
+    const guest = await Guest.findOne({ email }).select('+password') as IGuest | null;
 
     if (!guest) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -34,15 +34,18 @@ export const guestLogin = async (req: Request, res: Response) => {
       await guest.save();
     }
 
+    // Ensure we're working with a string ID
+    const guestId = guest._id.toString();
+    
     res.status(200).json({
       message: 'Logged in successfully',
       guest: {
-        _id: guest._id,
+        _id: guestId,
         email: guest.email,
         claimed: guest.claimed,
         coupons: guest.coupons,
       },
-      token: generateToken(guest._id),
+      token: generateToken(guestId),
     });
 
   } catch (error) {
