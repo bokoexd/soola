@@ -1,23 +1,42 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS build
 
 # Set working directory
 WORKDIR /app
 
-# Copy everything except node_modules
-COPY . .
+# Copy package files
+COPY package*.json ./
 
-# Install dependencies
-RUN npm install --omit=dev
+# Install all dependencies including dev dependencies for building
+RUN npm install
+
+# Copy project files
+COPY . .
 
 # Remove the incorrect file before building
 RUN rm -f ./src/pages/AdminPage.tsx
 
-# Build with more explicit TypeScript options to address compilation issues
-RUN npx tsc --skipLibCheck --project tsconfig.json || \
+# Compile TypeScript files
+RUN npm run build || \
     (echo "Build failed, but we'll continue for debugging" && \
-     echo "Here are the TypeScript errors:" && \
-     npx tsc --noEmit --project tsconfig.json && \
-     mkdir -p dist && touch dist/index.js && echo "console.error('Build failed, see logs');" >> dist/index.js)
+     echo "TypeScript errors:" && \
+     ./node_modules/.bin/tsc --noEmit && \
+     mkdir -p dist && \
+     echo "console.error('Build failed, see logs');" > dist/index.js)
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm install --omit=dev
+
+# Copy built files from the build stage
+COPY --from=build /app/dist ./dist
 
 # Add a script to validate environment variables at startup
 RUN echo '#!/bin/sh\n\
